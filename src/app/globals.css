@@ -124,7 +124,7 @@
       transform 500ms ease-out;
   }
 
-  .js [data-reveal].is-visible {
+  .js [data-reveal][data-visible] {
     opacity: 1;
     transform: none;
   }

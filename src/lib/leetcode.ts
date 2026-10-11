@@ -10,12 +10,22 @@ export type DifficultyStat = {
   total: number;
 };
 
+export type LeetcodeBadge = {
+  name: string;
+  icon: string;
+  /** ISO date (YYYY-MM-DD) the badge was earned. */
+  earned: string;
+};
+
 export type LeetcodeStats = {
   solved: number;
   totalQuestions: number;
   breakdown: DifficultyStat[];
   streak: number | null;
   activeDays: number | null;
+  /** The one badge worth featuring, if any. */
+  badge: LeetcodeBadge | null;
+  badgeCount: number;
 };
 
 const QUERY = /* GraphQL */ `
@@ -35,9 +45,41 @@ const QUERY = /* GraphQL */ `
         streak
         totalActiveDays
       }
+      badges {
+        displayName
+        icon
+        creationDate
+        category
+      }
     }
   }
 `;
+
+type RawBadge = {
+  displayName: string;
+  icon: string;
+  creationDate: string;
+  category: string;
+};
+
+/**
+ * Feature the all-time submission badge (e.g. "365 Days Badge") when there is
+ * one; it says more about consistency than the year-specific badges. Otherwise
+ * fall back to the most recently earned badge.
+ */
+function pickBadge(badges: RawBadge[]): LeetcodeBadge | null {
+  if (badges.length === 0) return null;
+  const byNewest = [...badges].sort((a, b) =>
+    b.creationDate.localeCompare(a.creationDate),
+  );
+  const chosen = byNewest.find((b) => b.category === "SUBMISSION") ?? byNewest[0];
+  const icon = chosen.icon.startsWith("/")
+    ? `https://leetcode.com${chosen.icon}`
+    : chosen.icon;
+  // Only feature icons next/image is allowed to load (see next.config.ts).
+  if (!icon.startsWith("https://assets.leetcode.com/")) return null;
+  return { name: chosen.displayName, icon, earned: chosen.creationDate };
+}
 
 type Count = { difficulty: string; count: number };
 
@@ -47,6 +89,7 @@ type GraphQLResponse = {
     matchedUser: {
       submitStatsGlobal: { acSubmissionNum: Count[] };
       userCalendar: { streak: number; totalActiveDays: number } | null;
+      badges: RawBadge[] | null;
     } | null;
   };
   errors?: { message: string }[];
@@ -99,6 +142,8 @@ export async function getLeetcodeStats(): Promise<LeetcodeStats | null> {
       })),
       streak: user.userCalendar?.streak ?? null,
       activeDays: user.userCalendar?.totalActiveDays ?? null,
+      badge: pickBadge(user.badges ?? []),
+      badgeCount: user.badges?.length ?? 0,
     };
 
     cacheLife("days");

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getLeetcodeStats, type Difficulty } from "@/lib/leetcode";
 import { SkeletonBar, StatCard, StatsUnavailable } from "./stat-card";
 
@@ -6,6 +7,27 @@ const BAR_COLOR: Record<Difficulty, string> = {
   Medium: "bg-medium",
   Hard: "bg-hard",
 };
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** "2025-10-11" → "Oct 2025" */
+function formatMonth(isoDate: string) {
+  const [year, month] = isoDate.split("-").map(Number);
+  return month ? `${MONTHS[month - 1]} ${year}` : isoDate;
+}
 
 export async function LeetcodeCard() {
   const stats = await getLeetcodeStats();
@@ -26,7 +48,7 @@ export async function LeetcodeCard() {
               <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4">
                 {stats.streak !== null && (
                   <div>
-                    <dt className="font-mono text-xs text-muted">streak</dt>
+                    <dt className="font-mono text-xs text-muted">best streak</dt>
                     <dd className="tabular-nums">{stats.streak} days</dd>
                   </div>
                 )}
@@ -36,7 +58,29 @@ export async function LeetcodeCard() {
                     <dd className="tabular-nums">{stats.activeDays}</dd>
                   </div>
                 )}
+                <p className="col-span-2 -mt-1 font-mono text-[11px] text-muted">
+                  past 12 months
+                </p>
               </dl>
+            )}
+
+            {stats.badge && (
+              <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
+                <Image
+                  src={stats.badge.icon}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="size-10 shrink-0"
+                />
+                <div className="min-w-0 text-sm">
+                  <p className="truncate">{stats.badge.name}</p>
+                  <p className="font-mono text-xs text-muted">
+                    earned {formatMonth(stats.badge.earned)}
+                    {stats.badgeCount > 1 && ` · +${stats.badgeCount - 1} more`}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 

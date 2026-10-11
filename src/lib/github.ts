@@ -18,12 +18,26 @@ export type PinnedRepo = {
   language: string | null;
 };
 
+export type LanguageShare = {
+  name: string;
+  /** Share of code across public repos, 0–100. */
+  percent: number;
+};
+
 export type GithubStats = {
   totalContributions: number;
   /** Weeks of the calendar, oldest first. Each week is Sunday → Saturday. */
   weeks: ContributionDay[][];
   pinned: PinnedRepo[];
+  publicRepos: number;
+  totalStars: number;
+  /** Year the account was created. */
+  memberSince: number;
+  /** Top languages by code size across public, non-fork repos. */
+  languages: LanguageShare[];
 };
+
+const TOP_LANGUAGES = 5;
 
 const LEVELS: Record<string, ContributionLevel> = {
   NONE: 0,
@@ -36,6 +50,7 @@ const LEVELS: Record<string, ContributionLevel> = {
 const QUERY = /* GraphQL */ `
   query ($login: String!) {
     user(login: $login) {
+      createdAt
       contributionsCollection {
         contributionCalendar {
           totalContributions
@@ -44,6 +59,20 @@ const QUERY = /* GraphQL */ `
               date
               contributionCount
               contributionLevel
+            }
+          }
+        }
+      }
+      repositories(first: 100, ownerAffiliations: OWNER, isFork: false, privacy: PUBLIC) {
+        totalCount
+        nodes {
+          stargazerCount
+          languages(first: 10, orderBy: { field: SIZE, direction: DESC }) {
+            edges {
+              size
+              node {
+                name
+              }
             }
           }
         }
@@ -65,9 +94,15 @@ const QUERY = /* GraphQL */ `
   }
 `;
 
+type RepoNode = {
+  stargazerCount: number;
+  languages: { edges: { size: number; node: { name: string } }[] } | null;
+};
+
 type GraphQLResponse = {
   data?: {
     user: {
+      createdAt: string;
       contributionsCollection: {
         contributionCalendar: {
           totalContributions: number;
@@ -79,6 +114,10 @@ type GraphQLResponse = {
             }[];
           }[];
         };
+      };
+      repositories: {
+        totalCount: number;
+        nodes: RepoNode[];
       };
       pinnedItems: {
         nodes: {
@@ -94,8 +133,27 @@ type GraphQLResponse = {
   errors?: { message: string }[];
 };
 
+/** Top languages by bytes, with the remainder folded into "Other". */
+function languageShares(repos: RepoNode[]): LanguageShare[] {
+  const bytes = new Map<string, number>();
+  for (const repo of repos) {
+    for (const edge of repo.languages?.edges ?? []) {
+      bytes.set(edge.node.name, (bytes.get(edge.node.name) ?? 0) + edge.size);
+    }
+  }
+  const total = [...bytes.values()].reduce((sum, n) => sum + n, 0);
+  if (total === 0) return [];
+
+  const sorted = [...bytes.entries()].sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, TOP_LANGUAGES);
+  const rest = sorted.slice(TOP_LANGUAGES).reduce((sum, [, n]) => sum + n, 0);
+  const shares = top.map(([name, n]) => ({ name, percent: (n / total) * 100 }));
+  if (rest > 0) shares.push({ name: "Other", percent: (rest / total) * 100 });
+  return shares;
+}
+
 /**
- * Contribution calendar + pinned repos for the configured user.
+ * Contribution calendar, repo stats and pinned repos for the configured user.
  * Returns null when the token is missing or the API fails, so the card can
  * render its fallback. Cached for a day on success, an hour on failure.
  */
@@ -128,6 +186,7 @@ export async function getGithubStats(): Promise<GithubStats | null> {
     }
 
     const calendar = user.contributionsCollection.contributionCalendar;
+    const repos = user.repositories.nodes;
     const stats: GithubStats = {
       totalContributions: calendar.totalContributions,
       weeks: calendar.weeks.map((week) =>
@@ -146,6 +205,10 @@ export async function getGithubStats(): Promise<GithubStats | null> {
           stars: node.stargazerCount,
           language: node.primaryLanguage?.name ?? null,
         })),
+      publicRepos: user.repositories.totalCount,
+      totalStars: repos.reduce((sum, repo) => sum + repo.stargazerCount, 0),
+      memberSince: Number(user.createdAt.slice(0, 4)),
+      languages: languageShares(repos),
     };
 
     cacheLife("days");

@@ -2,19 +2,23 @@
 
 import { useEffect } from "react";
 
-/** Adds `is-visible` to `[data-reveal]` elements as they enter the viewport. */
+/**
+ * Marks `[data-reveal]` elements with `data-visible` as they enter the viewport.
+ * A data attribute (not a class) so React never sees it as a hydration mismatch
+ * on sections that hydrate after this runs.
+ */
 export function RevealObserver() {
   useEffect(() => {
     const elements = document.querySelectorAll<HTMLElement>("[data-reveal]");
     if (!("IntersectionObserver" in window)) {
-      elements.forEach((el) => el.classList.add("is-visible"));
+      elements.forEach((el) => el.setAttribute("data-visible", ""));
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
+            entry.target.setAttribute("data-visible", "");
             observer.unobserve(entry.target);
           }
         }

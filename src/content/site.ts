@@ -46,8 +46,6 @@ export type SkillCategory = {
   id: string;
   name: string;
   skills: string[];
-  /** Render the skills as a vertical stack with the first item marked as top. */
-  stack?: boolean;
 };
 
 export type EducationItem = {
@@ -223,19 +221,7 @@ export const site: Site = {
     {
       id: "backend",
       name: "Backend",
-      stack: true,
-      skills: [
-        "Go",
-        "Gin",
-        "GORM",
-        "Node.js",
-        "Express.js",
-        "NestJS",
-        "REST APIs",
-        "Swagger",
-        "Repository Pattern",
-        "MVC",
-      ],
+      skills: ["Go", "Gin", "GORM", "Node.js", "Express.js", "NestJS", "REST APIs"],
     },
     {
       id: "frontend",
@@ -269,7 +255,7 @@ export const site: Site = {
     {
       id: "tools",
       name: "Tools",
-      skills: ["Git", "GitHub", "Postman", "Fabric.js", "Monaco Editor", "Tiptap"],
+      skills: ["Git", "Postman", "Fabric.js", "Monaco Editor", "Tiptap"],
     },
   ],
   education: [

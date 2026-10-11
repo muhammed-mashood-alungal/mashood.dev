@@ -16,6 +16,8 @@ export function Section({ id, title, children, className }: SectionProps) {
       aria-labelledby={titleId}
       tabIndex={-1}
       data-reveal
+      // RevealObserver adds `data-visible`, possibly before this section hydrates.
+      suppressHydrationWarning
       className={`outline-none ${className ?? ""}`}
     >
       <h2 id={titleId} className="mb-6 text-xl font-semibold tracking-tight">

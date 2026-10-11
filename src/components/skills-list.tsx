@@ -81,16 +81,13 @@ export function SkillsList({ categories }: { categories: SkillCategory[] }) {
         if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
       }}
     >
-      <ol
-        aria-label="Skill categories"
-        className="flex flex-col items-start sm:flex-row sm:flex-wrap sm:items-center sm:gap-y-3"
-      >
+      <ol aria-label="Skill categories" className="flex flex-wrap items-center gap-y-2">
         {categories.map((category, i) => {
           const active = category.id === activeId;
           const isLast = i === categories.length - 1;
           return (
             <Fragment key={category.id}>
-              <li className="flex flex-col items-start sm:flex-row sm:items-center">
+              <li className="flex items-center">
                 <button
                   type="button"
                   id={`skill-node-${category.id}`}
@@ -104,6 +101,12 @@ export function SkillsList({ categories }: { categories: SkillCategory[] }) {
                   }`}
                 >
                   {category.name}
+                  <span
+                    aria-hidden
+                    className="ml-2 font-mono text-[11px] text-muted tabular-nums"
+                  >
+                    {category.skills.length}
+                  </span>
                   {active && canAutoplay && (
                     <span
                       key={category.id}
@@ -148,20 +151,7 @@ export function SkillsList({ categories }: { categories: SkillCategory[] }) {
                   <p className="mb-3 font-mono text-xs text-muted">
                     {category.name.toLowerCase()}.skills
                   </p>
-                  {category.stack ? (
-                    <StackList skills={category.skills} />
-                  ) : (
-                    <ul className="flex flex-wrap gap-2">
-                      {category.skills.map((skill) => (
-                        <li
-                          key={skill}
-                          className="rounded-md border border-border px-2.5 py-1 text-sm"
-                        >
-                          {skill}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <StackList skills={category.skills} />
                 </div>
               </div>
             </div>
@@ -186,27 +176,24 @@ export function SkillsList({ categories }: { categories: SkillCategory[] }) {
 
 function Arrow() {
   return (
-    <span aria-hidden className="font-mono text-sm text-muted">
-      <span className="block py-1 pl-4 sm:hidden">↓</span>
-      <span className="hidden px-2.5 sm:inline">next →</span>
+    <span aria-hidden className="px-2 font-mono text-sm text-muted">
+      →
     </span>
   );
 }
 
-/** Vertical stack with the first item marked as the top. */
+/** Skills as a vertical stack. */
 function StackList({ skills }: { skills: string[] }) {
   return (
-    <ol className="flex w-full max-w-xs flex-col gap-1.5">
-      {skills.map((skill, i) => (
-        <li key={skill} className="flex items-center gap-3">
-          <span className="flex-1 rounded-md border border-border px-2.5 py-1 text-sm">
-            {skill}
-          </span>
-          <span aria-hidden className="w-12 font-mono text-xs text-accent">
-            {i === 0 ? "← top" : ""}
-          </span>
+    <ul className="flex w-full max-w-48 flex-col gap-1">
+      {skills.map((skill) => (
+        <li
+          key={skill}
+          className="rounded-md border border-border px-2.5 py-0.5 text-sm"
+        >
+          {skill}
         </li>
       ))}
-    </ol>
+    </ul>
   );
 }

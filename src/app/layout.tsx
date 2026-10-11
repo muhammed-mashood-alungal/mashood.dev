@@ -66,7 +66,12 @@ const paletteConfig: PaletteConfig = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${fontSans.variable} ${fontMono.variable} antialiased`}>
+    // The inline script below adds a `js` class before hydration.
+    <html
+      lang="en"
+      className={`${fontSans.variable} ${fontMono.variable} antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         {/* Enables fade-in styles only when JS runs; set before first paint. */}
         <script
